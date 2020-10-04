@@ -37,6 +37,12 @@ int matrixMult(const ub::matrix<T>& sourceMatrixA, const ub::matrix<T>& sourceMa
 
 template <class T>
 int invertMatrix(const ub::matrix<T>& A, ub::matrix<T>& result);
+
+
+template<class T>
+int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                        ub::matrix<T>& result, T tau, T eps);
+
 /*
  * implementation:
  */
@@ -336,5 +342,11 @@ int invertMatrix(const ub::matrix<T>& A, ub::matrix<T>& result) {
     log::debug() << "invert of matrix result: " << multRes << "\n";
   }
 
+  return 0;
+}
+
+template<class T>
+int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                        ub::matrix<T>& result, T tau, T eps) {
   return 0;
 }
