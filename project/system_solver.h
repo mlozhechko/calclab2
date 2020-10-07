@@ -4,6 +4,7 @@
 #include <boost/numeric/ublas/io.hpp>
 #include <numeric>
 #include "utils.h"
+#include "matrix_utils.h"
 
 namespace ub = boost::numeric::ublas;
 
@@ -11,7 +12,7 @@ namespace ub = boost::numeric::ublas;
  * synopsis:
  */
 template<class T>
-int gaussSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+[[maybe_unused]] int gaussSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                ub::matrix<T>& solution);
 
 template <class T>
@@ -28,7 +29,7 @@ template<class U>
 int QRDecomposition(const ub::matrix<U>& sourceMatrix, ub::matrix<U>& Q, ub::matrix<U>& R);
 
 template<class T>
-int QRSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+[[maybe_unused]] int QRSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
             ub::matrix<T>& solution);
 
 template <class T>
@@ -38,16 +39,51 @@ int matrixMult(const ub::matrix<T>& sourceMatrixA, const ub::matrix<T>& sourceMa
 template <class T>
 int invertMatrix(const ub::matrix<T>& A, ub::matrix<T>& result);
 
+template <class T>
+int invertDiagMatrix(const ub::matrix<T>& A, ub::matrix<T>& result);
+
+enum class stopCrit {
+  error = 0,
+  cont,
+  stop
+};
+
+template<class T>
+stopCrit ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX,
+                             const ub::matrix<T>& C, T eps,
+                             std::function<T(const ub::matrix<T>&)> norm);
 
 template<class T>
 int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
-                        ub::matrix<T>& result, T tau, T eps);
+                        ub::matrix<T>& result, T tau, std::function<T(const ub::matrix<T>&)> norm,
+                        T eps);
+
+template <class T>
+int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps);
+
+template <class T>
+int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps);
+
+
+
+template <class T>
+int diag3RelaxationCalcC(const ub::matrix<T>& A3d, ub::matrix<T>& C, T w);
+
+/*
+ * in following method sourceMatrix is T(3 x N). Which contains values of three diagonals
+ */
+template <class T>
+int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                            ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm,
+                            T eps, T w);
 
 /*
  * implementation:
  */
 template<class T>
-int gaussSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+[[maybe_unused]] int gaussSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                ub::matrix<T>& solution) {
   ub::matrix<T> A = sourceMatrix;
   ub::matrix<T> B = sourceVector;
@@ -241,7 +277,7 @@ int QRDecomposition(const ub::matrix<U>& sourceMatrix, ub::matrix<U>& Q, ub::mat
 }
 
 template <class T>
-int QRSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+[[maybe_unused]] int QRSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
             ub::matrix<T>& solution) {
   ub::matrix<T> Q, R;
   if (QRDecomposition(sourceMatrix, Q, R) < 0) {
@@ -346,7 +382,315 @@ int invertMatrix(const ub::matrix<T>& A, ub::matrix<T>& result) {
 }
 
 template<class T>
+int invertDiagMatrix(const ub::matrix<T>& A, ub::matrix<T>& result) {
+  ub::matrix<T>& R = result;
+
+  ssize_t height = A.size1();
+  ssize_t width = A.size2();
+
+  if (height != width) {
+    log::debug() << "matrix is not diag and cannot be inverted" << "\n";
+    return -1;
+  }
+  R = ub::zero_matrix<T>(height, width);
+
+  for (ssize_t i = 0; i < height; ++i) {
+    T elem = A(i, i);
+    if (elem <= std::numeric_limits<T>::epsilon()) {
+      log::debug() << "matrix has det == 0 and cannot be inverted" << "\n";
+      return -2;
+    }
+
+    R(i, i) = 1. / elem;
+  }
+  return 0;
+}
+
+template<class T>
+stopCrit ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX,
+                                  const ub::matrix<T>& C, T eps,
+                                  std::function<T(const ub::matrix<T>&)> norm) {
+  T normC = norm(C);
+  if (normC <= std::numeric_limits<T>::epsilon()) {
+    return stopCrit::error;
+  }
+
+  ub::matrix<T> deltaX = X - prevX;
+  bool result = norm(deltaX) <= (1.0 - normC) / normC * eps;
+  if (result) {
+    return stopCrit::stop;
+  }
+
+  return stopCrit::cont;
+}
+
+template<class T>
 int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
-                        ub::matrix<T>& result, T tau, T eps) {
+                        ub::matrix<T>& result, T tau, std::function<T(const ub::matrix<T>&)> norm,
+                        T eps) {
+  const ub::matrix<T>& A = sourceMatrix;
+  const ub::matrix<T>& B = sourceVector;
+
+  ssize_t height = A.size1();
+  ssize_t width = A.size2();
+
+  if (height != width) {
+    log::debug() << "fixed points iteration matrix is not square \n";
+    return -1;
+  }
+
+  ub::matrix<T> E = ub::identity_matrix(height, width);
+
+  ub::matrix<T> C = -(A * tau - E);
+  ub::matrix<T> Y = B * tau;
+
+  ub::matrix<T> X = ub::zero_matrix(height, 1);
+  ub::matrix<T> prevX = ub::zero_matrix(height, 1);
+
+  stopCrit status = stopCrit::cont;
+  do {
+    prevX = X;
+    matrixMult(C, prevX, X);
+    X = X + Y;
+    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+  } while (stopCrit::cont == status);
+
+  if (stopCrit::error == status) {
+    return -1;
+  }
+
+  result = X;
+  return 0;
+}
+
+template<class T>
+int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps) {
+  ub::matrix<T> A = sourceMatrix;
+  ub::matrix<T> B = sourceVector;
+
+  ssize_t height = A.size1();
+  ssize_t width = A.size2();
+  if (height != width) {
+    return -1;
+  }
+
+  ub::matrix<T> X = ub::zero_matrix(height, 1);
+  ub::matrix<T> prevX = ub::zero_matrix(height, 1);
+
+  ub::matrix<T> C = ub::zero_matrix(height, width);
+  for (ssize_t i = 0; i < height; ++i) {
+    for (ssize_t j = 0; j < width; ++j) {
+      if (i == j) {
+        continue;
+      }
+      C(i, j) = -A(i, j) / A(i, i);
+    }
+  }
+
+  stopCrit status = stopCrit::cont;
+  do {
+    prevX = X;
+    for (ssize_t i = 0; i < height; ++i) {
+      T acc = 0;
+      for (ssize_t j = 0; j < width; ++j) {
+        if (i == j) {
+          continue;
+        }
+        acc += C(i, j) * prevX(j, 0);
+      }
+      acc += -B(i, 0) / A(i, i);
+      X(i, 0) = acc;
+    }
+    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+  } while (stopCrit::cont == status);
+
+  if (status == stopCrit::error) {
+    return -1;
+  }
+
+  result = X;
+  return 0;
+}
+
+template<class T>
+int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps) {
+  const ub::matrix<T>& A = sourceMatrix;
+  const ub::matrix<T>& B = sourceVector;
+
+  ssize_t height = A.size1();
+  ssize_t width = A.size2();
+
+  if (height != width) {
+    return -1;
+  }
+
+  ub::matrix<T> E = ub::identity_matrix(height, width);
+
+  ub::matrix<T> L = ub::zero_matrix(height, width);
+  for (ssize_t i = 0; i < height; ++i) {
+    for (ssize_t j = 0; j < i; ++j) {
+      L(i, j) = A(i, j);
+    }
+  }
+  ub::matrix<T> D = ub::zero_matrix(height, width);
+  for (ssize_t i = 0; i < height; ++i) {
+    D(i, i) = A(i, i);
+  }
+  ub::matrix<T> U = ub::zero_matrix(height, width);
+  for (ssize_t i = 0; i < height; ++i) {
+    for (ssize_t j = i + 1; j < width; ++j) {
+      U(i, j) = A(i, j);
+    }
+  }
+
+  ub::matrix<T> DI;
+  invertDiagMatrix(D, DI);
+
+  ub::matrix<T> DIL;
+  matrixMult(DI, L, DIL);
+
+  DIL = E + DIL;
+  ub::matrix<T> DILI;
+  invertMatrix(DIL, DILI);
+  // DILI == (E + D^(-1) * L)^(-1)
+
+  ub::matrix<T> DIU;
+  matrixMult(DI, U, DIU);
+  DIU = -DIU;
+  // DIU == (-D^(-1) * U)
+
+  ub::matrix<T> C;
+  matrixMult(DILI, DIU, C);
+  // C == DILI * DIU == (E + D^(-1) * L)^(-1) * (-D^(-1) * U)
+
+  ub::matrix<T> X = ub::zero_matrix(height, 1);
+  ub::matrix<T> prevX = X;
+
+  stopCrit status = stopCrit::cont;
+  do {
+    prevX = X;
+    for (ssize_t i = 0; i < height; ++i) {
+      T acc = 0;
+
+      for (ssize_t j = 0; j < i; ++j) {
+        acc += -A(i, j) / A(i, i) * X(j, 0);
+      }
+
+      for (ssize_t j = i + 1; j < height; ++j) {
+        acc += -A(i, j) / A(i, i) * prevX(j, 0);
+      }
+
+      acc += B(i, 0) / A(i, i);
+      X(i, 0) = acc;
+    }
+    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+  } while (stopCrit::cont == status);
+
+  if (status == stopCrit::error) {
+    return -1;
+  }
+
+  result = X;
+  return 0;
+}
+
+
+
+template<class T>
+int diag3RelaxationCalcC(const ub::matrix<T>& A3d, ub::matrix<T>& C, T w) {
+  ssize_t n = A3d.size1();
+  ub::matrix<T> A = ub::zero_matrix(n, n);
+
+  A(0, 0) = A3d(0, 1);
+  A(0, 1) = A3d(0, 2);
+
+  for (ssize_t i = 1; i < n - 1; ++i) {
+    A(i, i - 1) = A3d(i, 0);
+    A(i, i) = A3d(i, 1);
+    A(i, i + 1) = A3d(i, 2);
+  }
+
+  A(n - 1, n - 2) = A3d(n - 1, 0);
+  A(n - 1, n - 1) = A3d(n - 1, 1);
+
+  ub::matrix<T> L = ub::zero_matrix(n, n);
+  for (ssize_t i = 0; i < n; ++i) {
+    for (ssize_t j = 0; j < i; ++j) {
+      L(i, j) = A(i, j);
+    }
+  }
+  ub::matrix<T> D = ub::zero_matrix(n, n);
+  for (ssize_t i = 0; i < n; ++i) {
+    D(i, i) = A(i, i);
+  }
+  ub::matrix<T> U = ub::zero_matrix(n, n);
+  for (ssize_t i = 0; i < n; ++i) {
+    for (ssize_t j = i + 1; j < n; ++j) {
+      U(i, j) = A(i, j);
+    }
+  }
+
+  ub::matrix<T> DI;
+  invertDiagMatrix(D, DI);
+
+  ub::matrix<T> wDI;
+  wDI = DI * w;
+  ub::matrix<T> E = ub::identity_matrix(n, n);
+  ub::matrix<T> wDIL;
+  matrixMult(wDI, L, wDIL);
+  wDIL = wDIL + E;
+  ub::matrix<T> wDILI;
+  invertMatrix(wDIL, wDILI);
+
+  ub::matrix<T> mwE = E * (1 - w);
+  ub::matrix<T> wDIU;
+  matrixMult(wDI, U, wDIU);
+  wDIU = mwE - wDIU;
+
+  matrixMult(wDILI, wDIU, C);
+
+  return 0;
+}
+
+template<class T>
+int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
+                            ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm,
+                            T eps, T w) {
+  ssize_t height = sourceMatrix.height();
+  ub::matrix<T> X = ub::zero_matrix(height, 1);
+  ub::matrix<T> prevX = X;
+
+  ub::matrix<T>& A = sourceMatrix;
+  ub::matrix<T>& B = sourceVector;
+  ub::matrix<T> C;
+
+  diag3RelaxationCalcC(A, C, w);
+
+  stopCrit status = stopCrit::cont;
+  do {
+    prevX = X;
+
+    X(0, 0) = (1 - w) * prevX(0, 0) - w * A(0, 2) / A(0, 1) * prevX(1, 0) + w * B(0, 0) / A(0, 1);
+
+    for (ssize_t i = 1; i < height - 1; ++i) {
+      X(i, 0) = 0;
+      X(i, 0) += -w * A(i, 0) / A(i, 1) * X(i - 1, 0 );
+      X(i, 0) += (1 - w) * prevX(i, 0);
+      X(i, 0) += -w * A(i, 2) / A(i, 1) * prevX(i + 1, 0);
+      X(i, 0) += w * B(i, 0) / A(i, 1);
+    }
+
+    ssize_t last = height - 1;
+    X(last, 0) = -w * A(last, 0) + (1 + w) * prevX(last, 0) + w * B(last, 0) / A(last, 1);
+
+    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+  } while (stopCrit::cont == status);
+
+  if (status == stopCrit::error) {
+    return -1;
+  }
+
   return 0;
 }

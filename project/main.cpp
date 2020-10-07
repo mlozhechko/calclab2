@@ -48,8 +48,16 @@ int lab2Main(int argc, char** argv) {
 
     T tau = 1;
     T eps = std::numeric_limits<T>::epsilon();
-    if (fixedPointIteration(A, B, X, tau, eps) < 0) {
+    if (fixedPointIteration(A, B, X, tau, 0, eps) < 0) {
       return -5;
+    }
+  } else if (method == "jacobi") {
+    std::cout << "using jacobi method" << std::endl;
+
+    T eps = 0.1;
+    std::function<T(const ub::matrix<T>&)> norm = normOcta<T>;
+    if (jacobiIteration(A, B, X, norm, eps) < 0) {
+      return -1;
     }
   } else {
     std::cerr << "solver method cannot be parsed" << std::endl;
