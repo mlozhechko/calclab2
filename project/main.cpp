@@ -43,26 +43,64 @@ int lab2Main(int argc, char** argv) {
   /*
    * calculation
    */
+  T eps = 0.001;
+  std::function<T(const ub::matrix<T>&)> norm = normCubic<T>;
+
   if (method == "fpi") {
     std::cout << "using fixed point iteration method" << std::endl;
-
-    T tau = 1;
-    T eps = std::numeric_limits<T>::epsilon();
-    if (fixedPointIteration(A, B, X, tau, 0, eps) < 0) {
+    /*
+     * fpi works correctly with 6 test with 0.25 tau and Cubic norm
+     * with this conditions norm(C) <= 1 (0.95)
+     */
+    T tau = 0.05;
+    if (fixedPointIteration(A, B, X, tau, norm, eps) < 0) {
       return -5;
     }
   } else if (method == "jacobi") {
     std::cout << "using jacobi method" << std::endl;
-
-    T eps = 0.1;
-    std::function<T(const ub::matrix<T>&)> norm = normOcta<T>;
     if (jacobiIteration(A, B, X, norm, eps) < 0) {
       return -1;
     }
+  } else if (method == "seidel") {
+    std::cout << "using seidel method" << std::endl;
+    if (zeidelIteration(A, B, X, norm, eps) < 0) {
+      return -1;
+    }
+  } else if (method == "relax3d") {
+    std::cout << "using relaxation method (3-diagonal matrices case)" << std::endl;
+    std::cout << "warning(!) source matrices will be redefined" << std::endl;
+
+    const T w = 1;
+    const ssize_t N = 213;
+    A = ub::zero_matrix<T>(N, 3);
+    B = ub::zero_matrix<T>(N, 1);
+
+    A(0, 1) = 4;
+    A(0, 2) = 1;
+
+    for (ssize_t i = 0; i < N - 1; ++i) {
+      A(i, 0) = 1;
+      A(i, 1) = 4;
+      A(i, 2) = 1;
+    }
+    A(N - 1, 0) = 1;
+    A(N - 1, 1) = 4;
+
+    B(0, 0) = 6;
+    for (ssize_t i = 1; i < N - 1; ++i) {
+      B(i, 0) = 10 - 2 * ((i + 1) % 2);
+    }
+    B(N - 1, 0) = 9 - 3 * (N % 2);
+
+    if (diag3RelaxaionIteration(A, B, X, norm, eps, w) < 0) {
+      return -1;
+    }
   } else {
-    std::cerr << "solver method cannot be parsed" << std::endl;
-    return -3;
+      std::cerr << "solver method cannot be parsed" << std::endl;
+      return -3;
   }
+
+  std::cout << "result is X = " << X << std::endl;
 
   return 0;
 }

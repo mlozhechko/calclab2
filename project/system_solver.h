@@ -415,7 +415,11 @@ stopCrit ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& p
     return stopCrit::error;
   }
 
+  log::debug() << "norm C: " << normC << "\n";
+
   ub::matrix<T> deltaX = X - prevX;
+
+  log::debug() << "deltaX: " << deltaX << " norm(deltaX): " << norm(deltaX) << "\n";
   bool result = norm(deltaX) <= (1.0 - normC) / normC * eps;
   if (result) {
     return stopCrit::stop;
@@ -428,6 +432,7 @@ template<class T>
 int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                         ub::matrix<T>& result, T tau, std::function<T(const ub::matrix<T>&)> norm,
                         T eps) {
+  log::debug() << "enter fpi method" << "\n";
   const ub::matrix<T>& A = sourceMatrix;
   const ub::matrix<T>& B = sourceVector;
 
@@ -447,11 +452,19 @@ int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& 
   ub::matrix<T> X = ub::zero_matrix(height, 1);
   ub::matrix<T> prevX = ub::zero_matrix(height, 1);
 
+  std::cout << "fpi norm(C): " << norm(C) << std::endl;
+  if (norm(C) > 1) {
+    std::cout << "C: " << C << std::endl;
+    std::cerr << "norm(C) >= 1, system can not be solved" << std::endl;
+    return -2;
+  }
+
   stopCrit status = stopCrit::cont;
   do {
     prevX = X;
     matrixMult(C, prevX, X);
     X = X + Y;
+    log::debug() << "new X = " << X << "\n";
     status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
   } while (stopCrit::cont == status);
 
@@ -488,6 +501,14 @@ int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
     }
   }
 
+  const T nc = norm(C);
+  std::cout << "jacobi norm(C): " << nc << " >= 1" << std::endl;
+  if (nc > 1) {
+    std::cout << "C: " << C << std::endl;
+    std::cerr << "norm(C) >= 1. system can not be solved" << std::endl;
+    return -1;
+  }
+
   stopCrit status = stopCrit::cont;
   do {
     prevX = X;
@@ -499,7 +520,7 @@ int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
         }
         acc += C(i, j) * prevX(j, 0);
       }
-      acc += -B(i, 0) / A(i, i);
+      acc += B(i, 0) / A(i, i);
       X(i, 0) = acc;
     }
     status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
@@ -567,6 +588,8 @@ int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
 
   ub::matrix<T> X = ub::zero_matrix(height, 1);
   ub::matrix<T> prevX = X;
+
+  std::cout << "seidel method norm(C): " << norm(C) << std::endl;
 
   stopCrit status = stopCrit::cont;
   do {
@@ -658,15 +681,17 @@ template<class T>
 int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                             ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm,
                             T eps, T w) {
-  ssize_t height = sourceMatrix.height();
+  ssize_t height = sourceMatrix.size1();
   ub::matrix<T> X = ub::zero_matrix(height, 1);
   ub::matrix<T> prevX = X;
 
-  ub::matrix<T>& A = sourceMatrix;
-  ub::matrix<T>& B = sourceVector;
+  ub::matrix<T> A = sourceMatrix;
+  ub::matrix<T> B = sourceVector;
   ub::matrix<T> C;
 
   diag3RelaxationCalcC(A, C, w);
+//  std::cout << "C: " << C << std::endl;
+  std::cout << "norm(C): " << norm(C) << std::endl;
 
   stopCrit status = stopCrit::cont;
   do {
@@ -683,7 +708,7 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
     }
 
     ssize_t last = height - 1;
-    X(last, 0) = -w * A(last, 0) + (1 + w) * prevX(last, 0) + w * B(last, 0) / A(last, 1);
+    X(last, 0) = -w * A(last, 0) / A(last, 1) * X(last - 1, 0) + (1 - w) * prevX(last, 0) + w * B(last, 0) / A(last, 1);
 
     status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
   } while (stopCrit::cont == status);
@@ -691,6 +716,8 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
   if (status == stopCrit::error) {
     return -1;
   }
+
+  result = X;
 
   return 0;
 }
