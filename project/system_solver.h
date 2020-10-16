@@ -11,6 +11,17 @@ namespace ub = boost::numeric::ublas;
 /*
  * synopsis:
  */
+
+enum class stopCrit {
+  error = 0,
+  cont,
+  stop
+};
+
+template <class T>
+using stopCritType = std::function<stopCrit(const ub::matrix<T>&, const ub::matrix<T>&, const ub::matrix<T>&, T eps,
+                             std::function<T(const ub::matrix<T>&)>, const ub::matrix<T>&)>;
+
 template<class T>
 [[maybe_unused]] int gaussSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                ub::matrix<T>& solution);
@@ -42,29 +53,40 @@ int invertMatrix(const ub::matrix<T>& A, ub::matrix<T>& result);
 template <class T>
 int invertDiagMatrix(const ub::matrix<T>& A, ub::matrix<T>& result);
 
-enum class stopCrit {
-  error = 0,
-  cont,
-  stop
-};
+
 
 template<class T>
-stopCrit ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX,
-                             const ub::matrix<T>& C, T eps,
-                             std::function<T(const ub::matrix<T>&)> norm);
+stopCrit
+ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX, const ub::matrix<T>& C,
+                         T eps, std::function<T(const ub::matrix<T>&)> norm,
+                         const ub::matrix<T>& origSolution);
+
+template<class T>
+stopCrit
+solutionStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX, const ub::matrix<T>& C,
+                         T eps, std::function<T(const ub::matrix<T>&)> norm,
+                         const ub::matrix<T>& origSolution);
+
+template<class T>
+stopCrit
+deltaStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX, const ub::matrix<T>& C,
+                         T eps, std::function<T(const ub::matrix<T>&)> norm,
+                         const ub::matrix<T>& origSolution);
 
 template<class T>
 int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                         ub::matrix<T>& result, T tau, std::function<T(const ub::matrix<T>&)> norm,
-                        T eps);
+                        T eps, const ub::matrix<T>& origSolution, stopCritType<T> stopCond);
 
 template <class T>
 int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
-                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps);
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps,
+                    const ub::matrix<T>& origSolution, stopCritType<T> stopCond);
 
 template <class T>
 int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
-                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps);
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps,
+                    const ub::matrix<T>& origSolution, stopCritType<T> stopCond);
 
 
 
@@ -77,11 +99,13 @@ int diag3RelaxationCalcC(const ub::matrix<T>& A3d, ub::matrix<T>& C, T w);
 template <class T>
 int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                             ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm,
-                            T eps, T w);
+                            T eps, T w, const ub::matrix<T>& origSolution,
+                            stopCritType<T> stopCond);
 
 /*
  * implementation:
  */
+
 template<class T>
 [[maybe_unused]] int gaussSolve(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                ub::matrix<T>& solution) {
@@ -407,9 +431,10 @@ int invertDiagMatrix(const ub::matrix<T>& A, ub::matrix<T>& result) {
 }
 
 template<class T>
-stopCrit ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX,
-                                  const ub::matrix<T>& C, T eps,
-                                  std::function<T(const ub::matrix<T>&)> norm) {
+stopCrit
+ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX, const ub::matrix<T>& C,
+                         T eps, std::function<T(const ub::matrix<T>&)> norm,
+                         const ub::matrix<T>& origSolution) {
   T normC = norm(C);
   if (normC <= std::numeric_limits<T>::epsilon()) {
     return stopCrit::error;
@@ -429,9 +454,47 @@ stopCrit ordinaryStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& p
 }
 
 template<class T>
+stopCrit
+solutionStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX, const ub::matrix<T>& C,
+                         T eps, std::function<T(const ub::matrix<T>&)> norm,
+                         const ub::matrix<T>& origSolution) {
+
+  if (X.size1() != origSolution.size1()) {
+    return stopCrit::error;
+  }
+
+  ub::matrix<T> deltaX = X - origSolution;
+  T deltaNorm = norm(deltaX);
+  if (deltaNorm < eps) {
+    return stopCrit::stop;
+  }
+
+  return stopCrit::cont;
+}
+
+template<class T>
+stopCrit
+deltaStoppingCriteria(const ub::matrix<T>& X, const ub::matrix<T>& prevX, const ub::matrix<T>& C,
+                      T eps, std::function<T(const ub::matrix<T>&)> norm,
+                      const ub::matrix<T>& origSolution) {
+  if (prevX.size1() != X.size1()) {
+    return stopCrit::error;
+  }
+
+  ub::matrix<T> deltaX = X - prevX;
+  T normDeltaX = norm(deltaX);
+
+  if (normDeltaX < eps) {
+    return stopCrit::stop;
+  }
+
+  return stopCrit::cont;
+}
+
+template<class T>
 int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                         ub::matrix<T>& result, T tau, std::function<T(const ub::matrix<T>&)> norm,
-                        T eps) {
+                        T eps, const ub::matrix<T>& origSolution, stopCritType<T> stopCond) {
   log::debug() << "enter fpi method" << "\n";
   const ub::matrix<T>& A = sourceMatrix;
   const ub::matrix<T>& B = sourceVector;
@@ -465,7 +528,7 @@ int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& 
     matrixMult(C, prevX, X);
     X = X + Y;
     log::debug() << "new X = " << X << "\n";
-    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+    status = stopCond(X, prevX, C, eps, norm, origSolution);
   } while (stopCrit::cont == status);
 
   if (stopCrit::error == status) {
@@ -478,7 +541,8 @@ int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& 
 
 template<class T>
 int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
-                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps) {
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps,
+                    const ub::matrix<T>& origSolution, stopCritType<T> stopCond) {
   ub::matrix<T> A = sourceMatrix;
   ub::matrix<T> B = sourceVector;
 
@@ -523,7 +587,7 @@ int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
       acc += B(i, 0) / A(i, i);
       X(i, 0) = acc;
     }
-    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+    status = stopCond(X, prevX, C, eps, norm, origSolution);
   } while (stopCrit::cont == status);
 
   if (status == stopCrit::error) {
@@ -536,7 +600,8 @@ int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
 
 template<class T>
 int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
-                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps) {
+                    ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm, T eps,
+                    const ub::matrix<T>& origSolution, stopCritType<T> stopCond) {
   const ub::matrix<T>& A = sourceMatrix;
   const ub::matrix<T>& B = sourceVector;
 
@@ -608,7 +673,7 @@ int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
       acc += B(i, 0) / A(i, i);
       X(i, 0) = acc;
     }
-    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+    status = stopCond(X, prevX, C, eps, norm, origSolution);
   } while (stopCrit::cont == status);
 
   if (status == stopCrit::error) {
@@ -618,8 +683,6 @@ int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
   result = X;
   return 0;
 }
-
-
 
 template<class T>
 int diag3RelaxationCalcC(const ub::matrix<T>& A3d, ub::matrix<T>& C, T w) {
@@ -680,7 +743,8 @@ int diag3RelaxationCalcC(const ub::matrix<T>& A3d, ub::matrix<T>& C, T w) {
 template<class T>
 int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sourceVector,
                             ub::matrix<T>& result, std::function<T(const ub::matrix<T>&)> norm,
-                            T eps, T w) {
+                            T eps, T w, const ub::matrix<T>& origSolution,
+                            stopCritType<T> stopCond) {
   ssize_t height = sourceMatrix.size1();
   ub::matrix<T> X = ub::zero_matrix(height, 1);
   ub::matrix<T> prevX = X;
@@ -690,7 +754,6 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
   ub::matrix<T> C;
 
   diag3RelaxationCalcC(A, C, w);
-//  std::cout << "C: " << C << std::endl;
   std::cout << "norm(C): " << norm(C) << std::endl;
 
   stopCrit status = stopCrit::cont;
@@ -710,7 +773,7 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
     ssize_t last = height - 1;
     X(last, 0) = -w * A(last, 0) / A(last, 1) * X(last - 1, 0) + (1 - w) * prevX(last, 0) + w * B(last, 0) / A(last, 1);
 
-    status = ordinaryStoppingCriteria(X, prevX, C, eps, norm);
+    status = stopCond(X, prevX, C, eps, norm, origSolution);
   } while (stopCrit::cont == status);
 
   if (status == stopCrit::error) {

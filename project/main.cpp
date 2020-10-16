@@ -46,6 +46,30 @@ int lab2Main(int argc, char** argv) {
   T eps = 0.001;
   std::function<T(const ub::matrix<T>&)> norm = normCubic<T>;
 
+  ub::matrix<T> origSolution;
+  if (cmdOptionExists(argv, argv + argc, "-solution")) {
+    std::ifstream solutionStream(getCmdOption(argv, argv + argc, "-solution"));
+    initVector(origSolution, solutionStream);
+  }
+
+  if(!cmdOptionExists(argv, argv + argc, "-criteria")) {
+    std::cout << "stopping criteria has not been selected" << std::endl;
+    return -1;
+  }
+  std::string criteriaSelectorString = getCmdOption(argv, argv + argc, "-criteria");
+
+  stopCritType<T> stopCrit;
+  if (criteriaSelectorString == "ordinary") {
+    stopCrit = ordinaryStoppingCriteria<T>;
+  } else if (criteriaSelectorString == "solution") {
+    stopCrit = solutionStoppingCriteria<T>;
+  } else if (criteriaSelectorString == "delta") {
+    stopCrit = deltaStoppingCriteria<T>;
+  } else {
+    std::cout << "stopping criteria has not been carefully selected" << std::endl;
+    return -2;
+  }
+
   if (method == "fpi") {
     std::cout << "using fixed point iteration method" << std::endl;
     /*
@@ -53,17 +77,17 @@ int lab2Main(int argc, char** argv) {
      * with this conditions norm(C) <= 1 (0.95)
      */
     T tau = 0.05;
-    if (fixedPointIteration(A, B, X, tau, norm, eps) < 0) {
+    if (fixedPointIteration(A, B, X, tau, norm, eps, origSolution, stopCrit) < 0) {
       return -5;
     }
   } else if (method == "jacobi") {
     std::cout << "using jacobi method" << std::endl;
-    if (jacobiIteration(A, B, X, norm, eps) < 0) {
+    if (jacobiIteration(A, B, X, norm, eps, origSolution, stopCrit) < 0) {
       return -1;
     }
   } else if (method == "seidel") {
     std::cout << "using seidel method" << std::endl;
-    if (zeidelIteration(A, B, X, norm, eps) < 0) {
+    if (zeidelIteration(A, B, X, norm, eps, origSolution, stopCrit) < 0) {
       return -1;
     }
   } else if (method == "relax3d") {
@@ -92,7 +116,7 @@ int lab2Main(int argc, char** argv) {
     }
     B(N - 1, 0) = 9 - 3 * (N % 2);
 
-    if (diag3RelaxaionIteration(A, B, X, norm, eps, w) < 0) {
+    if (diag3RelaxaionIteration(A, B, X, norm, eps, w, origSolution, stopCrit) < 0) {
       return -1;
     }
   } else {
