@@ -46,6 +46,11 @@ int lab2Main(int argc, char** argv) {
    * calculation
    */
   T eps = 1E-7;
+
+  if (getCmdOption(argv, argv + argc, "-eps")) {
+    eps = std::stod(getCmdOption(argv, argv + argc, "-eps"));
+    std::cout << "eps is set to: " << eps << std::endl;
+  }
   std::function<T(const ub::matrix<T>&)> norm = normCubic<T>;
 
   ub::matrix<T> origSolution;
