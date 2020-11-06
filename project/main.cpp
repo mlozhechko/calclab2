@@ -1,3 +1,5 @@
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "cert-flp30-c"
 #include <iostream>
 #include <fstream>
 #include <boost/numeric/ublas/matrix.hpp>
@@ -43,7 +45,7 @@ int lab2Main(int argc, char** argv) {
   /*
    * calculation
    */
-  T eps = 0.001;
+  T eps = 1E-7;
   std::function<T(const ub::matrix<T>&)> norm = normCubic<T>;
 
   ub::matrix<T> origSolution;
@@ -76,7 +78,34 @@ int lab2Main(int argc, char** argv) {
      * fpi works correctly with 6 test with 0.25 tau and Cubic norm
      * with this conditions norm(C) <= 1 (0.95)
      */
-    T tau = 0.05;
+//    T delta = 0.001;
+//    T tau = delta;
+//
+//    T minTau = -1;
+//    T maxNorm = 1;
+//    std::cout << " norm A " << norm(A) << std::endl;
+//
+//    for (; tau < 0.2; tau += delta) {
+//      ssize_t height = A.size1();
+//      ssize_t width = A.size2();
+//      ub::matrix<T> E = ub::identity_matrix(height, width);
+//      ub::matrix<T> C = -(A * tau - E);
+//
+//      std::cout << norm(C) << " " << tau << std::endl;
+//      if (norm(C) < maxNorm) {
+//        maxNorm = norm(C);
+//        minTau = tau;
+//      }
+//    }
+    T tau = 0.008;
+
+    if (tau < 0) {
+      std::cout << "norm(C) >= 1. system can not be calculated properly" << std::endl;
+      return -7;
+    }
+
+    std::cout << "minimal norm C tau is: " << tau << std::endl;
+
     if (fixedPointIteration(A, B, X, tau, norm, eps, origSolution, stopCrit) < 0) {
       return -5;
     }
@@ -126,6 +155,16 @@ int lab2Main(int argc, char** argv) {
 
   std::cout << "result is X = " << X << std::endl;
 
+  if (cmdOptionExists(argv, argv + argc, "-solution")) {
+    std::cout << "original solution delta " << X - origSolution << std::endl;
+    std::cout << "norm delta " << norm(X - origSolution) << std::endl;
+  }
+
+  ub::matrix<T> NRes;
+  matrixMult(A, X, NRes);
+  std::cout << "residual: " << NRes - B << std::endl;
+  std::cout << "norm residual: " << norm(NRes - B) << std::endl;
+
   return 0;
 }
 
@@ -146,3 +185,5 @@ int main(int argc, char** argv) {
   std::cerr << "precision cannot be parsed correctly" << std::endl;
   return -2;
 }
+
+#pragma clang diagnostic pop

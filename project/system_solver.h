@@ -102,6 +102,9 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
                             T eps, T w, const ub::matrix<T>& origSolution,
                             stopCritType<T> stopCond);
 
+template <class T>
+T kEstimation(T q, T p0, T eps);
+
 /*
  * implementation:
  */
@@ -420,7 +423,7 @@ int invertDiagMatrix(const ub::matrix<T>& A, ub::matrix<T>& result) {
 
   for (ssize_t i = 0; i < height; ++i) {
     T elem = A(i, i);
-    if (elem <= std::numeric_limits<T>::epsilon()) {
+    if (std::abs(elem) <= std::numeric_limits<T>::epsilon()) {
       log::debug() << "matrix has det == 0 and cannot be inverted" << "\n";
       return -2;
     }
@@ -512,15 +515,18 @@ int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& 
   ub::matrix<T> C = -(A * tau - E);
   ub::matrix<T> Y = B * tau;
 
-  ub::matrix<T> X = ub::zero_matrix(height, 1);
+  ub::matrix<T> X = Y; //ub::zero_matrix(height, 1);
   ub::matrix<T> prevX = ub::zero_matrix(height, 1);
 
   std::cout << "fpi norm(C): " << norm(C) << std::endl;
+
   if (norm(C) > 1) {
     std::cout << "C: " << C << std::endl;
     std::cerr << "norm(C) >= 1, system can not be solved" << std::endl;
     return -2;
   }
+
+  ssize_t itc = 0;
 
   stopCrit status = stopCrit::cont;
   do {
@@ -529,7 +535,17 @@ int fixedPointIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& 
     X = X + Y;
     log::debug() << "new X = " << X << "\n";
     status = stopCond(X, prevX, C, eps, norm, origSolution);
+
+    ++itc;
+    if (itc == 1) {
+      T p0 = norm(prevX - X);
+      T kEst = kEstimation(norm(C), p0, eps);
+      std::cout << "k estimation. k > " << kEst << std::endl;
+    }
+
   } while (stopCrit::cont == status);
+
+  std::cout << "number of iterations " << itc << std::endl;
 
   if (stopCrit::error == status) {
     return -1;
@@ -573,6 +589,8 @@ int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
     return -1;
   }
 
+  ssize_t itc = 0;
+
   stopCrit status = stopCrit::cont;
   do {
     prevX = X;
@@ -588,7 +606,16 @@ int jacobiIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
       X(i, 0) = acc;
     }
     status = stopCond(X, prevX, C, eps, norm, origSolution);
+
+    ++itc;
+    if (itc == 1) {
+      T estK = kEstimation(norm(C), norm(X - prevX), eps);
+      std::cout << "k estimation: " << estK << std::endl;
+    }
+
   } while (stopCrit::cont == status);
+
+  std::cout << "number of iterations: " << itc << std::endl;
 
   if (status == stopCrit::error) {
     return -1;
@@ -632,7 +659,11 @@ int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
   }
 
   ub::matrix<T> DI;
-  invertDiagMatrix(D, DI);
+  int res = invertDiagMatrix(D, DI);
+  if (res < 0) {
+    std::cerr << "invert diag matrix error, res: " << res << std::endl;
+    return -1;
+  }
 
   ub::matrix<T> DIL;
   matrixMult(DI, L, DIL);
@@ -656,6 +687,14 @@ int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
 
   std::cout << "seidel method norm(C): " << norm(C) << std::endl;
 
+  if (norm(C) >= 1) {
+    std::cerr << "norm(C) = " << norm(C) << " >= 1" << std::endl;
+    std::cerr << "system cannot be solved" << std::endl;
+    return -1;
+  }
+
+  size_t itc = 0;
+
   stopCrit status = stopCrit::cont;
   do {
     prevX = X;
@@ -673,8 +712,16 @@ int zeidelIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<T>& sour
       acc += B(i, 0) / A(i, i);
       X(i, 0) = acc;
     }
+    ++itc;
+
+    if (itc == 1) {
+      T estK = kEstimation(norm(C), norm(X - prevX), eps);
+      std::cout << "esitmated k " << estK << std::endl;
+    }
     status = stopCond(X, prevX, C, eps, norm, origSolution);
   } while (stopCrit::cont == status);
+
+  std::cout << "number of iterations: " << itc << std::endl;
 
   if (status == stopCrit::error) {
     return -1;
@@ -756,6 +803,8 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
   diag3RelaxationCalcC(A, C, w);
   std::cout << "norm(C): " << norm(C) << std::endl;
 
+  ssize_t itc = 0;
+
   stopCrit status = stopCrit::cont;
   do {
     prevX = X;
@@ -774,7 +823,15 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
     X(last, 0) = -w * A(last, 0) / A(last, 1) * X(last - 1, 0) + (1 - w) * prevX(last, 0) + w * B(last, 0) / A(last, 1);
 
     status = stopCond(X, prevX, C, eps, norm, origSolution);
+    ++itc;
+
+    if (itc == 1) {
+      T estK = kEstimation(norm(C), norm(X - prevX), eps);
+      std::cout << "est K: " << estK << std::endl;
+    }
   } while (stopCrit::cont == status);
+
+  std::cout << "number of iterations: " << itc << std::endl;
 
   if (status == stopCrit::error) {
     return -1;
@@ -783,4 +840,17 @@ int diag3RelaxaionIteration(const ub::matrix<T>& sourceMatrix, const ub::matrix<
   result = X;
 
   return 0;
+}
+
+template <class T>
+T kEstimation(T q, T p0, T eps) {
+//  std::cout << q << " " << p0 << " " << eps << std::endl;
+
+//  std::cout << eps * (1 - q) / p0 << std::endl;
+
+  T up = std::log<T>(eps * (1 - q) / p0).real();
+  T down = std::log<T>(q).real();
+
+//  std::cout << up << " " << down << std::endl;
+  return up / down;
 }
