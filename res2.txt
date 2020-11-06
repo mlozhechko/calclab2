@@ -1,0 +1,254 @@
+
+fpi (T = 0.008)
+
+ordinary
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using fixed point iteration method
+minimal norm C tau is: 0.001
+fpi norm(C): 0.96704
+k estimation. k > 579.503
+number of iterations 356
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((4.18909e-10),(6.09815e-08),(-6.11753e-08),(6.30402e-11))
+norm delta 6.11753e-08
+residual: [4,1]((2.14297e-08),(3.10607e-06),(-3.12136e-06),(2.90254e-09))
+norm residual: 3.12136e-06
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using fixed point iteration method
+minimal norm C tau is: 0.001
+fpi norm(C): 0.96704
+k estimation. k > 373.396
+number of iterations 224
+result is X = [4,1]((-6),(2.00006),(14.9999),(-3))
+original solution delta [4,1]((4.5526e-07),(5.93621e-05),(-6.23228e-05),(-9.64518e-08))
+norm delta 6.23228e-05
+residual: [4,1]((2.38523e-05),(0.00299796),(-0.00319772),(-7.73126e-06))
+norm residual: 0.00319772
+
+solution
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using fixed point iteration method
+minimal norm C tau is: 0.001
+fpi norm(C): 0.96704
+k estimation. k > 579.503
+number of iterations 347
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((6.72089e-10),(9.76145e-08),(-9.80141e-08),(9.58131e-11))
+norm delta 9.80141e-08
+residual: [4,1]((3.43996e-08),(4.97113e-06),(-5.00157e-06),(4.30521e-09))
+norm residual: 5.00157e-06
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using fixed point iteration method
+minimal norm C tau is: 0.001
+fpi norm(C): 0.96704
+k estimation. k > 373.396
+number of iterations 216
+result is X = [4,1]((-6),(2.00009),(14.9999),(-3))
+original solution delta [4,1]((7.00807e-07),(8.9829e-05),(-9.50035e-05),(-1.85483e-07))
+norm delta 9.50035e-05
+residual: [4,1]((3.68436e-05),(0.00453021),(-0.00487881),(-1.43434e-05))
+norm residual: 0.00487881
+
+delta
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using fixed point iteration method
+minimal norm C tau is: 0.001
+fpi norm(C): 0.96704
+k estimation. k > 579.503
+number of iterations 291
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((1.28378e-08),(1.81831e-06),(-1.84435e-06),(7.26192e-10))
+norm delta 1.84435e-06
+residual: [4,1]((6.60848e-07),(9.24279e-05),(-9.4235e-05),(9.38428e-09))
+norm residual: 9.4235e-05
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using fixed point iteration method
+minimal norm C tau is: 0.001
+fpi norm(C): 0.96704
+k estimation. k > 373.396
+number of iterations 161
+result is X = [4,1]((-5.99999),(2.00151),(14.9983),(-3.00001))
+original solution delta [4,1]((1.43547e-05),(0.00151263),(-0.00174888),(-1.1613e-05))
+norm delta 0.00174888
+residual: [4,1]((0.000781339),(0.0749057),(-0.090721),(-0.000809408))
+norm residual: 0.090721
+jacobi
+
+ordinary
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using jacobi method
+jacobi norm(C): 0.457895 >= 1
+k estimation: 24.9143
+number of iterations: 11
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((2.84947e-10),(2.85455e-09),(1.295e-09),(-1.01549e-09))
+norm delta 2.85455e-09
+residual: [4,1]((6.16551e-08),(1.97696e-07),(8.30626e-08),(-2.08788e-07))
+norm residual: 2.08788e-07
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using jacobi method
+jacobi norm(C): 0.457895 >= 1
+k estimation: 16.0708
+number of iterations: 7
+result is X = [4,1]((-6),(2.00001),(15),(-3))
+original solution delta [4,1]((8.80476e-07),(8.82516e-06),(3.99599e-06),(-3.13704e-06))
+norm delta 8.82516e-06
+residual: [4,1]((0.000190504),(0.000611098),(0.00025638),(-0.000645003))
+norm residual: 0.000645003
+
+solution
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using jacobi method
+jacobi norm(C): 0.457895 >= 1
+k estimation: 24.9143
+number of iterations: 10
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((-2.14148e-09),(-2.20606e-08),(-9.02398e-09),(7.5316e-09))
+norm delta 2.20606e-08
+residual: [4,1]((-4.62478e-07),(-1.51484e-06),(-5.88182e-07),(1.55044e-06))
+norm residual: 1.55044e-06
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using jacobi method
+jacobi norm(C): 0.457895 >= 1
+k estimation: 16.0708
+number of iterations: 6
+result is X = [4,1]((-6.00001),(1.99993),(15),(-2.99998))
+original solution delta [4,1]((-6.61512e-06),(-6.81115e-05),(-2.79157e-05),(2.32711e-05))
+norm delta 6.81115e-05
+residual: [4,1]((-0.00142866),(-0.00467775),(-0.00181896),(0.00479044))
+norm residual: 0.00479044
+
+delta
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using jacobi method
+jacobi norm(C): 0.457895 >= 1
+k estimation: 24.9143
+number of iterations: 11
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((2.84947e-10),(2.85455e-09),(1.295e-09),(-1.01549e-09))
+norm delta 2.85455e-09
+residual: [4,1]((6.16551e-08),(1.97696e-07),(8.30626e-08),(-2.08788e-07))
+norm residual: 2.08788e-07
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using jacobi method
+jacobi norm(C): 0.457895 >= 1
+k estimation: 16.0708
+number of iterations: 7
+result is X = [4,1]((-6),(2.00001),(15),(-3))
+original solution delta [4,1]((8.80476e-07),(8.82516e-06),(3.99599e-06),(-3.13704e-06))
+norm delta 8.82516e-06
+residual: [4,1]((0.000190504),(0.000611098),(0.00025638),(-0.000645003))
+norm residual: 0.000645003
+
+seidel
+
+ordinary
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using seidel method
+seidel method norm(C): 0.301214
+esitmated k 15.9524
+number of iterations: 8
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((-4.35429e-11),(4.22736e-10),(-8.94218e-11),(1.43077e-11))
+norm delta 4.22736e-10
+residual: [4,1]((-7.96877e-09),(2.42852e-08),(-2.26214e-09),(0))
+norm residual: 2.42852e-08
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using seidel method
+seidel method norm(C): 0.301214
+esitmated k 10.1956
+number of iterations: 5
+result is X = [4,1]((-6),(2.00001),(15),(-3))
+original solution delta [4,1]((-7.1546e-07),(6.67368e-06),(-1.42335e-06),(2.26816e-07))
+norm delta 6.67368e-06
+residual: [4,1]((-0.000131178),(0.000382999),(-3.62432e-05),(0))
+norm residual: 0.000382999
+
+solution
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using seidel method
+seidel method norm(C): 0.301214
+esitmated k 15.9524
+number of iterations: 7
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((-1.09828e-09),(1.06218e-08),(-2.24777e-09),(3.59677e-10))
+norm delta 1.06218e-08
+residual: [4,1]((-2.01032e-07),(6.10147e-07),(-5.68706e-08),(0))
+norm residual: 6.10147e-07
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using seidel method
+seidel method norm(C): 0.301214
+esitmated k 10.1956
+number of iterations: 5
+result is X = [4,1]((-6),(2.00001),(15),(-3))
+original solution delta [4,1]((-7.1546e-07),(6.67368e-06),(-1.42335e-06),(2.26816e-07))
+norm delta 6.67368e-06
+residual: [4,1]((-0.000131178),(0.000382999),(-3.62432e-05),(0))
+norm residual: 0.000382999
+
+delta
+
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 1e-07
+using seidel method
+seidel method norm(C): 0.301214
+esitmated k 15.9524
+number of iterations: 8
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((-4.35429e-11),(4.22736e-10),(-8.94218e-11),(1.43077e-11))
+norm delta 4.22736e-10
+residual: [4,1]((-7.96877e-09),(2.42852e-08),(-2.26214e-09),(0))
+norm residual: 2.42852e-08
+source A: [4,4]((190.6,1.28,2.23,-0.79),(9.44,60.8,9.89,-8.51),(-4.51,6.02,57,6.55),(8.71,-6.59,-6.37,181.4))
+source B: [4,1]((-1105.22),(238.84),(874.45),(-705.19))
+eps is set to: 0.0001
+using seidel method
+seidel method norm(C): 0.301214
+esitmated k 10.1956
+number of iterations: 6
+result is X = [4,1]((-6),(2),(15),(-3))
+original solution delta [4,1]((-2.72248e-08),(2.67503e-07),(-5.64701e-08),(9.0422e-09))
+norm delta 2.67503e-07
+residual: [4,1]((-4.97972e-06),(1.53717e-05),(-1.42642e-06),(-1.13687e-13))
+norm residual: 1.53717e-05

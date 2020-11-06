@@ -102,7 +102,7 @@ int lab2Main(int argc, char** argv) {
 //        minTau = tau;
 //      }
 //    }
-    T tau = 0.008;
+    T tau = 0.001;
 
     if (tau < 0) {
       std::cout << "norm(C) >= 1. system can not be calculated properly" << std::endl;
